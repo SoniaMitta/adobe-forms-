@@ -1,0 +1,73 @@
+{
+  "name": "SAP2",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-js/postgres": "^1.10.1",
+    "@sap-cloud-sdk/http-client": "^3.15.0",
+    "@sap-cloud-sdk/resilience": "^3.15.0",
+    "@sap/cds": "^7",
+    "@sap/xssec": "^3",
+    "express": "^4",
+    "json2xml": "^0.1.3",
+    "passport": "^0",
+    "xmlbuilder2": "^3.1.1"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^1",
+    "@sap/cds-dk": "^7.9.8",
+    "@sap/ux-specification": "^1.120.13",
+    "rimraf": "^3.0.2"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch-cloudkitchen": "cds watch --open cloudkitchen/webapp/index.html?sap-ui-xx-viewCache=false",
+    "watch-kitchen": "cds watch --open kitchen/webapp/index.html?sap-ui-xx-viewCache=false",
+    "undeploy": "cf undeploy SAP2 --delete-services --delete-service-keys --delete-service-brokers",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+    "watch-productlocal": "cds watch --open productlocal/webapp/index.html?sap-ui-xx-viewCache=false",
+    "watch-product": "cds watch --open product/webapp/index.html?sap-ui-xx-viewCache=false"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "impl": "@cap-js/postgres",
+        "pool": {
+          "max": 20
+        }
+      },
+      "auth": {
+        "[production]": {
+          "strategy": "JWT"
+        },
+        "[test]": {
+          "strategy": "mock"
+        }
+      },
+      "API_PRODUCT_SRV": {
+        "kind": "odata-v2",
+        "model": "srv/external/API_PRODUCT_SRV",
+        "csrf": true,
+        "csrfInBatch": true,
+        "[production]": {
+          "credentials": {
+            "destination": "S4HANA",
+            "path": "/sap/opu/odata/sap/API_PRODUCT_SRV"
+          }
+        }
+      }
+    }
+  },
+  "sapux": [
+    "app/cloudkitchen",
+    "app/kitchen",
+    "app/kitchen",
+    "app/productlocal",
+    "app/product",
+    "app/product"
+  ]
+}

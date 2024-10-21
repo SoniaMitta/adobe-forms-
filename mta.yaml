@@ -1,0 +1,83 @@
+_schema-version: '3.1'
+ID: SAP2
+version: 1.0.0
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+modules:
+  - name: SAP2-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: npm
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: postgresql
+      - name: SAP2-auth
+      - name: SAP2-dest
+
+
+  - name: SAP2
+    type: approuter.nodejs
+    path: app/
+    parameters:
+      buildpack: nodejs_buildpack
+      stack: cflinuxfs4
+      keep-existing-routes: true
+      disk-quota: 2048M
+      memory: 1024M
+    requires:
+     - name: srv-api
+       group: destinations
+       properties:
+         name: srv-api
+         url: ~{srv-url}
+         forwardAuthToken: true
+     - name: SAP2-auth
+     - name: SAP2-dest
+     
+
+  - name: SAP2-postgresql-deployer
+    type: nodejs
+    path: gen/pg
+    parameters:
+      buildpack: nodejs_buildpack
+      no-route: true
+      no-start: true
+      tasks:
+        - name: deploy-to-postgresql
+          command: npm start
+    requires:
+      - name: postgresql
+
+resources:
+  - name: postgresql
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: postgresql-db
+      service-plan: trial
+  - name: SAP2-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: SAP2-${org}-${space}
+        tenant-mode: dedicated
+  - name: SAP2-dest
+    type: org.cloudfoundry.managed-service
+    parameters: 
+       service: destination
+       service-plan: lite
